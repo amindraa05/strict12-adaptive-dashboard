@@ -1,0 +1,479 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#0b1220" />
+  <title>STRICT12 Adaptive · Strategy Dashboard</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+  <style>
+    :root {
+      --bg: #0b1220;
+      --panel: #121a2b;
+      --panel2: #182338;
+      --border: #243049;
+      --text: #e8eefc;
+      --muted: #8b9bb8;
+      --green: #22c55e;
+      --red: #ef4444;
+      --amber: #f59e0b;
+      --blue: #38bdf8;
+      --purple: #a78bfa;
+      --radius: 16px;
+      --shadow: 0 8px 28px rgba(0,0,0,.35);
+    }
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0;
+      font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
+      background: radial-gradient(1200px 600px at 10% -10%, #1a2744 0%, var(--bg) 50%), var(--bg);
+      color: var(--text);
+      line-height: 1.45;
+      padding-bottom: 88px;
+    }
+    .wrap { max-width: 1100px; margin: 0 auto; padding: 16px; }
+    header {
+      padding: 18px 0 8px;
+    }
+    .badge {
+      display: inline-flex; align-items: center; gap: 6px;
+      font-size: 12px; font-weight: 600; letter-spacing: .02em;
+      color: #b7f7cf; background: rgba(34,197,94,.12);
+      border: 1px solid rgba(34,197,94,.3);
+      padding: 4px 10px; border-radius: 999px;
+    }
+    h1 { font-size: clamp(1.4rem, 4.5vw, 1.9rem); margin: 10px 0 6px; letter-spacing: -.02em; }
+    .sub { color: var(--muted); font-size: 14px; margin: 0 0 14px; }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0,1fr));
+      gap: 10px;
+    }
+    @media (min-width: 720px) {
+      .grid { grid-template-columns: repeat(4, minmax(0,1fr)); gap: 12px; }
+      .grid-2 { grid-template-columns: 1.4fr 1fr; }
+    }
+    .card {
+      background: linear-gradient(180deg, var(--panel) 0%, var(--panel2) 100%);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 14px;
+      box-shadow: var(--shadow);
+    }
+    .card h2 {
+      margin: 0 0 10px; font-size: 13px; text-transform: uppercase;
+      letter-spacing: .06em; color: var(--muted); font-weight: 700;
+    }
+    .kpi { font-size: clamp(1.25rem, 4vw, 1.55rem); font-weight: 750; letter-spacing: -.02em; }
+    .kpi.pos { color: var(--green); }
+    .kpi.neg { color: var(--red); }
+    .kpi.neu { color: var(--blue); }
+    .hint { font-size: 11px; color: var(--muted); margin-top: 4px; }
+    .chart-box { position: relative; height: 260px; }
+    @media (min-width: 720px) { .chart-box { height: 320px; } }
+    .chart-box.sm { height: 220px; }
+    table {
+      width: 100%; border-collapse: collapse; font-size: 13px;
+    }
+    th, td {
+      text-align: left; padding: 9px 6px; border-bottom: 1px solid var(--border);
+      white-space: nowrap;
+    }
+    th { color: var(--muted); font-size: 11px; text-transform: uppercase; letter-spacing: .04em; }
+    td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
+    tr:hover td { background: rgba(255,255,255,.02); }
+    .pos { color: var(--green); }
+    .neg { color: var(--red); }
+    .pill {
+      display: inline-block; padding: 2px 8px; border-radius: 999px;
+      font-size: 11px; font-weight: 650;
+      background: rgba(56,189,248,.12); color: var(--blue);
+      border: 1px solid rgba(56,189,248,.25);
+    }
+    .pill.warn { background: rgba(245,158,11,.12); color: var(--amber); border-color: rgba(245,158,11,.28); }
+    .pill.ok { background: rgba(34,197,94,.12); color: #86efac; border-color: rgba(34,197,94,.28); }
+    .stack { display: grid; gap: 12px; margin-top: 12px; }
+    ul.rules { margin: 0; padding-left: 18px; color: var(--muted); font-size: 13px; }
+    ul.rules li { margin: 6px 0; }
+    .nav {
+      position: fixed; left: 0; right: 0; bottom: 0; z-index: 50;
+      background: rgba(11,18,32,.92); backdrop-filter: blur(12px);
+      border-top: 1px solid var(--border);
+      display: flex; justify-content: space-around; padding: 8px 6px calc(8px + env(safe-area-inset-bottom));
+    }
+    .nav a {
+      color: var(--muted); text-decoration: none; font-size: 11px; font-weight: 650;
+      padding: 8px 10px; border-radius: 10px; text-align: center; min-width: 64px;
+    }
+    .nav a:hover, .nav a:focus { color: var(--text); background: rgba(255,255,255,.05); }
+    .scroll-x { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+    .bar-row { display: flex; align-items: center; gap: 8px; margin: 8px 0; font-size: 12px; }
+    .bar-lab { width: 52px; color: var(--muted); flex-shrink: 0; }
+    .bar-track { flex: 1; height: 10px; background: #1e2a40; border-radius: 999px; overflow: hidden; }
+    .bar-fill { height: 100%; border-radius: 999px; background: linear-gradient(90deg, #0ea5e9, #22c55e); }
+    .bar-val { width: 64px; text-align: right; font-variant-numeric: tabular-nums; }
+    .footer { color: var(--muted); font-size: 11px; margin: 18px 0 8px; }
+    .tabs { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 10px; }
+    .tabs button {
+      border: 1px solid var(--border); background: transparent; color: var(--muted);
+      border-radius: 999px; padding: 6px 12px; font-size: 12px; font-weight: 650; cursor: pointer;
+    }
+    .tabs button.active { color: var(--text); background: rgba(56,189,248,.12); border-color: rgba(56,189,248,.35); }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header id="top">
+      <span class="badge">● Research dashboard · fee 0.40% RT</span>
+      <h1>STRICT12 Adaptive VRBO</h1>
+      <p class="sub">Vol-regime breakout · basket gate · adaptive top-k · unlevered IDX mining/energy</p>
+    </header>
+
+    <section id="kpis" class="grid"></section>
+
+    <div class="stack">
+      <section id="equity" class="card">
+        <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap">
+          <h2 style="margin:0">Equity & Drawdown</h2>
+          <div class="tabs" id="eqTabs">
+            <button type="button" class="active" data-range="all">All</button>
+            <button type="button" data-range="5y">5Y</button>
+            <button type="button" data-range="holdout">Holdout 2024+</button>
+          </div>
+        </div>
+        <div class="chart-box"><canvas id="eqChart"></canvas></div>
+      </section>
+
+      <div class="grid grid-2" style="display:grid;gap:12px">
+        <section class="card">
+          <h2>Yearly returns</h2>
+          <div class="chart-box sm"><canvas id="yrChart"></canvas></div>
+        </section>
+        <section class="card">
+          <h2>Rolling 1Y return</h2>
+          <div class="chart-box sm"><canvas id="rollChart"></canvas></div>
+        </section>
+      </div>
+
+      <section id="yearly" class="card">
+        <h2>Hasil per tahun + transaksi</h2>
+        <div class="scroll-x">
+          <table>
+            <thead>
+              <tr>
+                <th>Year</th>
+                <th class="num">Return</th>
+                <th class="num">MDD</th>
+                <th class="num">Trx</th>
+                <th class="num">Rebal days</th>
+                <th class="num">Exposure</th>
+                <th class="num">Equity end</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody id="yearBody"></tbody>
+          </table>
+        </div>
+        <p class="hint">Trx = name entries ≈ round-trips. Rebal days = days with any weight change. Fee 0.40% RT already deducted.</p>
+      </section>
+
+      <div class="grid grid-2" style="display:grid;gap:12px">
+        <section id="names" class="card">
+          <h2>Name activity</h2>
+          <div id="nameBars"></div>
+        </section>
+        <section class="card">
+          <h2>Live snapshot</h2>
+          <div id="live"></div>
+          <h2 style="margin-top:16px">Worst underwater spells</h2>
+          <div id="uw"></div>
+        </section>
+      </div>
+
+      <section id="rules" class="card">
+        <h2>Strategy rules</h2>
+        <ul class="rules" id="rulesList"></ul>
+        <h2 style="margin-top:16px">Audit notes</h2>
+        <ul class="rules" id="auditList"></ul>
+      </section>
+
+      <p class="footer">
+        Research only · Not investment advice · Backtest with 0.15%/0.25% fees · Residual survivor/selection bias possible ·
+        Data as of <span id="asof"></span>
+      </p>
+    </div>
+  </div>
+
+  <nav class="nav">
+    <a href="#top">Home</a>
+    <a href="#equity">Equity</a>
+    <a href="#yearly">Years</a>
+    <a href="#names">Names</a>
+    <a href="#rules">Rules</a>
+  </nav>
+
+  <script>
+    const pct = (x, d=1) => (x * 100).toFixed(d) + '%';
+    const cls = (x) => x > 0 ? 'pos' : (x < 0 ? 'neg' : '');
+    const fmtX = (x) => x.toFixed(2) + '×';
+    let DATA = null;
+    let eqChart, yrChart, rollChart;
+
+    Chart.defaults.color = '#8b9bb8';
+    Chart.defaults.borderColor = 'rgba(36,48,73,.9)';
+    Chart.defaults.font.family = 'ui-sans-serif, system-ui, sans-serif';
+
+    function kpiCard(label, value, kind='neu', hint='') {
+      return `<div class="card"><div class="hint" style="margin:0 0 6px;text-transform:uppercase;letter-spacing:.06em;font-weight:700">${label}</div>
+        <div class="kpi ${kind}">${value}</div>${hint ? `<div class="hint">${hint}</div>` : ''}</div>`;
+    }
+
+    function buildKPIs(t) {
+      document.getElementById('kpis').innerHTML = [
+        kpiCard('CAGR', pct(t.cagr), t.cagr>=0?'pos':'neg', `${t.start} → ${t.end}`),
+        kpiCard('Max DD', pct(t.max_dd), 'neg', `Calmar ${t.calmar.toFixed(2)}`),
+        kpiCard('Total multiple', fmtX(t.final_multiple), 'neu', `Total return ${pct(t.total_return,0)}`),
+        kpiCard('Sharpe', t.sharpe.toFixed(2), 'neu', `Win years ${t.win_years}/${t.n_years}`),
+        kpiCard('Trades (entries)', t.total_entries, 'neu', `~${t.avg_entries_per_year.toFixed(0)} / year`),
+        kpiCard('Avg exposure', pct(t.avg_exposure,0), 'neu', `Rebal days ${t.total_rebalance_days}`),
+        kpiCard('Selection CAGR', pct(t.selection_cagr), t.selection_cagr>=0?'pos':'neg', `MDD ${pct(t.selection_mdd)} · to 2023`),
+        kpiCard('Holdout CAGR', pct(t.holdout_cagr), t.holdout_cagr>=0?'pos':'neg', `2024+ · MDD ${pct(t.holdout_mdd)}`),
+      ].join('');
+    }
+
+    function buildYearTable(years) {
+      const body = document.getElementById('yearBody');
+      body.innerHTML = years.map(y => {
+        if (y.year < 2013 && y.return === 0 && y.entries === 0) return '';
+        const badge = y.is_holdout ? '<span class="pill warn">holdout</span>' :
+          (y.return > 0.5 ? '<span class="pill ok">boom</span>' : '');
+        return `<tr>
+          <td><strong>${y.year}</strong></td>
+          <td class="num ${cls(y.return)}">${pct(y.return)}</td>
+          <td class="num neg">${pct(y.mdd)}</td>
+          <td class="num">${y.round_trips ?? y.entries}</td>
+          <td class="num">${y.rebalance_days}</td>
+          <td class="num">${pct(y.exposure,0)}</td>
+          <td class="num">${fmtX(y.end_equity)}</td>
+          <td>${badge}</td>
+        </tr>`;
+      }).join('');
+    }
+
+    function buildNames(stats) {
+      const max = Math.max(...stats.map(s => Math.abs(s.gross_pnl_sum)), 1e-9);
+      const maxE = Math.max(...stats.map(s => s.entries), 1);
+      document.getElementById('nameBars').innerHTML = stats.map(s => {
+        const w = Math.max(4, (Math.abs(s.gross_pnl_sum) / max) * 100);
+        const col = s.gross_pnl_sum >= 0
+          ? 'linear-gradient(90deg,#0ea5e9,#22c55e)'
+          : 'linear-gradient(90deg,#f97316,#ef4444)';
+        return `<div class="bar-row">
+          <div class="bar-lab">${s.symbol}</div>
+          <div class="bar-track"><div class="bar-fill" style="width:${w}%;background:${col}"></div></div>
+          <div class="bar-val">${s.entries} trx</div>
+        </div>`;
+      }).join('') + `<p class="hint">Bar width ∝ |gross contribution| (pre-fee proxy). Label = entries.</p>`;
+    }
+
+    function buildLive(live) {
+      const pos = Object.entries(live.positions || {});
+      document.getElementById('live').innerHTML = `
+        <div class="hint">As of <strong style="color:var(--text)">${live.asof}</strong></div>
+        <div style="margin-top:8px">Equity multiple: <strong>${fmtX(live.equity)}</strong></div>
+        <div>Current DD: <strong class="${cls(live.current_dd)}">${pct(live.current_dd)}</strong></div>
+        <div style="margin-top:8px">Positions: ${
+          pos.length ? pos.map(([k,v]) => `<span class="pill">${k} ${(v*100).toFixed(0)}%</span>`).join(' ')
+          : '<span class="pill">FLAT / cash</span>'
+        }</div>`;
+    }
+
+    function buildUW(uw) {
+      if (!uw.length) { document.getElementById('uw').innerHTML = '<div class="hint">—</div>'; return; }
+      document.getElementById('uw').innerHTML = `<div class="scroll-x"><table>
+        <thead><tr><th>Start</th><th>End</th><th class="num">Trough</th><th class="num">Days</th></tr></thead>
+        <tbody>${uw.map(u => `<tr>
+          <td>${u.start}</td><td>${u.end}</td>
+          <td class="num neg">${pct(u.trough)}</td>
+          <td class="num">${u.days}</td>
+        </tr>`).join('')}</tbody></table></div>`;
+    }
+
+    function filterCurve(curve, range) {
+      if (range === 'all') return curve;
+      if (range === 'holdout') return curve.filter(p => p.date >= '2024-01-01');
+      const last = curve[curve.length - 1]?.date;
+      if (!last) return curve;
+      const d = new Date(last);
+      d.setFullYear(d.getFullYear() - 5);
+      const cut = d.toISOString().slice(0,10);
+      return curve.filter(p => p.date >= cut);
+    }
+
+    function drawEquity(range='all') {
+      const curve = filterCurve(DATA.equity_curve, range);
+      const ctx = document.getElementById('eqChart');
+      const labels = curve.map(p => p.date);
+      const eq = curve.map(p => p.equity);
+      const dd = curve.map(p => p.dd * 100);
+      if (eqChart) eqChart.destroy();
+      eqChart = new Chart(ctx, {
+        type: 'line',
+        data: {
+          labels,
+          datasets: [
+            {
+              label: 'Equity (×)',
+              data: eq,
+              yAxisID: 'y',
+              borderColor: '#38bdf8',
+              backgroundColor: 'rgba(56,189,248,.12)',
+              fill: true,
+              tension: 0.15,
+              pointRadius: 0,
+              borderWidth: 2,
+            },
+            {
+              label: 'Drawdown %',
+              data: dd,
+              yAxisID: 'y1',
+              borderColor: '#ef4444',
+              backgroundColor: 'rgba(239,68,68,.10)',
+              fill: true,
+              tension: 0.15,
+              pointRadius: 0,
+              borderWidth: 1.5,
+            },
+          ],
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          interaction: { mode: 'index', intersect: false },
+          plugins: {
+            legend: { position: 'bottom', labels: { boxWidth: 10, boxHeight: 10 } },
+            tooltip: {
+              callbacks: {
+                label: (c) => c.dataset.yAxisID === 'y1'
+                  ? ` DD: ${c.parsed.y.toFixed(1)}%`
+                  : ` Equity: ${c.parsed.y.toFixed(2)}×`,
+              },
+            },
+          },
+          scales: {
+            x: {
+              ticks: { maxTicksLimit: 6, maxRotation: 0 },
+              grid: { display: false },
+            },
+            y: {
+              position: 'left',
+              title: { display: true, text: 'Equity ×' },
+              type: 'logarithmic',
+            },
+            y1: {
+              position: 'right',
+              title: { display: true, text: 'DD %' },
+              grid: { drawOnChartArea: false },
+              min: Math.min(...dd, -5) - 2,
+              max: 5,
+            },
+          },
+        },
+      });
+    }
+
+    function drawYearly() {
+      const ys = DATA.yearly.filter(y => !(y.year < 2013 && y.return === 0 && y.entries === 0));
+      const colors = ys.map(y => y.return >= 0 ? 'rgba(34,197,94,.85)' : 'rgba(239,68,68,.85)');
+      if (yrChart) yrChart.destroy();
+      yrChart = new Chart(document.getElementById('yrChart'), {
+        type: 'bar',
+        data: {
+          labels: ys.map(y => y.year),
+          datasets: [{
+            label: 'Return',
+            data: ys.map(y => y.return * 100),
+            backgroundColor: colors,
+            borderRadius: 6,
+          }],
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: { display: false },
+            tooltip: { callbacks: { label: (c) => ` ${c.parsed.y.toFixed(1)}%` } },
+          },
+          scales: {
+            x: { ticks: { maxRotation: 0, autoSkip: true, maxTicksLimit: 8 } },
+            y: { ticks: { callback: v => v + '%' } },
+          },
+        },
+      });
+    }
+
+    function drawRolling() {
+      const r = DATA.rolling_1y;
+      if (rollChart) rollChart.destroy();
+      rollChart = new Chart(document.getElementById('rollChart'), {
+        type: 'line',
+        data: {
+          labels: r.map(p => p.date),
+          datasets: [{
+            label: '1Y return',
+            data: r.map(p => p.ret * 100),
+            borderColor: '#a78bfa',
+            backgroundColor: 'rgba(167,139,250,.12)',
+            fill: true,
+            tension: 0.2,
+            pointRadius: 0,
+            borderWidth: 2,
+          }],
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: { display: false },
+            tooltip: { callbacks: { label: (c) => ` ${c.parsed.y.toFixed(1)}%` } },
+          },
+          scales: {
+            x: { ticks: { maxTicksLimit: 5, maxRotation: 0 }, grid: { display: false } },
+            y: { ticks: { callback: v => v + '%' } },
+          },
+        },
+      });
+    }
+
+    async function main() {
+      const res = await fetch('data.json?v=' + Date.now());
+      DATA = await res.json();
+      document.getElementById('asof').textContent = DATA.live_snapshot.asof;
+      buildKPIs(DATA.totals);
+      buildYearTable(DATA.yearly);
+      buildNames(DATA.name_stats);
+      buildLive(DATA.live_snapshot);
+      buildUW(DATA.worst_underwaters || []);
+      document.getElementById('rulesList').innerHTML =
+        (DATA.strategy.rules || []).map(r => `<li>${r}</li>`).join('');
+      document.getElementById('auditList').innerHTML =
+        (DATA.strategy.audit_notes || []).map(r => `<li>${r}</li>`).join('');
+      drawEquity('all');
+      drawYearly();
+      drawRolling();
+
+      document.querySelectorAll('#eqTabs button').forEach(btn => {
+        btn.addEventListener('click', () => {
+          document.querySelectorAll('#eqTabs button').forEach(b => b.classList.remove('active'));
+          btn.classList.add('active');
+          drawEquity(btn.dataset.range);
+        });
+      });
+    }
+    main().catch(err => {
+      document.body.innerHTML = `<div class="wrap"><div class="card"><h1>Failed to load data.json</h1><pre>${err}</pre></div></div>`;
+    });
+  </script>
+</body>
+</html>
