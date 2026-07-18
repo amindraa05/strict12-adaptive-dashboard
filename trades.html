@@ -109,13 +109,6 @@
     }
     td.num, th.num { text-align: right; }
     tr:hover td { background: rgba(255,255,255,.025); }
-    .pill {
-      display: inline-block; padding: 2px 7px; border-radius: 999px;
-      font-size: 10px; font-weight: 700;
-    }
-    .pill.win { background: rgba(34,197,94,.15); color: #86efac; }
-    .pill.loss { background: rgba(239,68,68,.15); color: #fca5a5; }
-    .pill.open { background: rgba(245,158,11,.15); color: #fcd34d; }
     .nav {
       position: fixed; left: 0; right: 0; bottom: 0; z-index: 50;
       background: rgba(11,18,32,.92); backdrop-filter: blur(12px);
@@ -134,6 +127,7 @@
       align-items: center; margin-bottom: 8px;
     }
     .count { font-size: 13px; color: var(--muted); }
+    .stack { display: grid; gap: 12px; }
   </style>
 </head>
 <body>
@@ -141,74 +135,75 @@
     <header>
       <span class="badge">STRICT12 Adaptive · all trades</span>
       <h1>Transactions</h1>
-      <p class="sub">Semua entry/exit backtest · filter by year · fee model 0.15% buy + 0.25% sell (0.40% RT)</p>
+      <p class="sub">Filter by year · Gross = harga saja · Net = setelah fee 0,40% RT · CAGR after = CAGR portfolio di tanggal exit</p>
     </header>
 
-    <section class="card" style="margin-bottom:12px">
-      <h2 style="margin:0 0 8px;font-size:13px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted)">Cara baca kolom (penting)</h2>
-      <ul style="margin:0;padding-left:18px;color:var(--muted);font-size:13px">
-        <li><strong style="color:var(--text)">Gross</strong> = return <em>harga saham saja</em> (exit/entry − 1). <strong>Belum</strong> dipotong fee.</li>
-        <li><strong style="color:var(--text)">Net −0,4%</strong> = Gross − <strong>0,40%</strong> round-trip fee (beli 0,15% + jual 0,25%). Ini return saham setelah fee 1 RT.</li>
-        <li><strong style="color:var(--text)">PnL port</strong> = kontribusi ke <em>modal portfolio</em> = Σ (bobot × return harian) − fee pada |Δ bobot| nama ini. Sudah <strong>setelah fee</strong>. Bisa beda dari Net jika bobot ≠ 100% atau bobot berubah di tengah trade (adaptive).</li>
-        <li><strong style="color:var(--text)">Result WIN/LOSS</strong> = berdasarkan <strong>PnL port</strong> (bukan Gross).</li>
-      </ul>
-    </section>
+    <div class="stack">
+      <section class="card">
+        <div style="font-size:13px;color:var(--muted)">
+          <div><strong style="color:var(--text)">Gross</strong> — return harga saham saja (exit/entry − 1). <em>Belum fee.</em></div>
+          <div style="margin-top:6px"><strong style="color:var(--text)">Net</strong> — Gross − <strong>0,40%</strong> (beli 0,15% + jual 0,25%). Sudah after fees di level 1 round-trip saham.</div>
+          <div style="margin-top:6px"><strong style="color:var(--text)">Weight</strong> — rata-rata bobot portfolio saat nama ini di-hold.</div>
+          <div style="margin-top:6px"><strong style="color:var(--text)">CAGR after</strong> — CAGR strategy (portfolio, <em>semua fee harian sudah masuk</em>) dari 2012 sampai tanggal exit trade ini.</div>
+          <div style="margin-top:6px"><strong style="color:var(--text)">Δ CAGR</strong> — perubahan CAGR running (pp) dari sebelum entry → setelah exit.</div>
+        </div>
+      </section>
 
-    <section class="grid" id="kpis"></section>
+      <section class="grid" id="kpis"></section>
 
-    <section class="card" style="margin-top:12px">
-      <div class="filters">
-        <div>
-          <label for="yearSel">Year</label><br/>
-          <select id="yearSel"></select>
+      <section class="card">
+        <div class="filters">
+          <div>
+            <label for="yearSel">Year</label><br/>
+            <select id="yearSel"></select>
+          </div>
+          <div>
+            <label for="symSel">Symbol</label><br/>
+            <select id="symSel"></select>
+          </div>
+          <div>
+            <label for="sideSel">Net</label><br/>
+            <select id="sideSel">
+              <option value="all">All</option>
+              <option value="plus">Net &gt; 0</option>
+              <option value="minus">Net &lt; 0</option>
+              <option value="open">Open</option>
+            </select>
+          </div>
+          <div style="flex:1;min-width:160px">
+            <label for="q">Search</label><br/>
+            <input id="q" type="search" placeholder="e.g. ANTM / 2021-03" />
+          </div>
         </div>
-        <div>
-          <label for="symSel">Symbol</label><br/>
-          <select id="symSel"></select>
+        <div class="chip-row" id="yearChips"></div>
+        <div class="toolbar">
+          <div class="count" id="countLabel">—</div>
+          <div class="hint">Portfolio full CAGR (after all fees): <span id="portCagr">—</span></div>
         </div>
-        <div>
-          <label for="sideSel">Result</label><br/>
-          <select id="sideSel">
-            <option value="all">All</option>
-            <option value="win">Wins</option>
-            <option value="loss">Losses</option>
-            <option value="open">Open</option>
-          </select>
+        <div class="scroll-x">
+          <table>
+            <thead>
+              <tr>
+                <th class="num">#</th>
+                <th>Symbol</th>
+                <th>Entry</th>
+                <th>Exit</th>
+                <th class="num">Entry px</th>
+                <th class="num">Exit px</th>
+                <th class="num">Gross</th>
+                <th class="num">Net</th>
+                <th class="num">Weight</th>
+                <th class="num">Hold d</th>
+                <th class="num">CAGR after</th>
+                <th class="num">Δ CAGR</th>
+              </tr>
+            </thead>
+            <tbody id="tbody"></tbody>
+          </table>
         </div>
-        <div style="flex:1;min-width:160px">
-          <label for="q">Search</label><br/>
-          <input id="q" type="search" placeholder="e.g. ANTM / 2021-03" />
-        </div>
-      </div>
-      <div class="chip-row" id="yearChips"></div>
-      <div class="toolbar">
-        <div class="count" id="countLabel">—</div>
-        <div class="hint">Gross = no fee · Net = Gross−0.40% · PnL port = NAV impact after fees</div>
-      </div>
-      <div class="scroll-x">
-        <table>
-          <thead>
-            <tr>
-              <th class="num">#</th>
-              <th>Symbol</th>
-              <th>Entry</th>
-              <th>Exit</th>
-              <th class="num">Entry px</th>
-              <th class="num">Exit px</th>
-              <th class="num">Gross</th>
-              <th class="num">Net −0.4%</th>
-              <th class="num">PnL port</th>
-              <th class="num">Fee</th>
-              <th class="num">Avg w</th>
-              <th class="num">Hold d</th>
-              <th>Result</th>
-            </tr>
-          </thead>
-          <tbody id="tbody"></tbody>
-        </table>
-      </div>
-      <div id="empty" class="empty" style="display:none">No trades for this filter.</div>
-    </section>
+        <div id="empty" class="empty" style="display:none">No trades for this filter.</div>
+      </section>
+    </div>
   </div>
 
   <nav class="nav">
@@ -220,35 +215,28 @@
 
   <script>
     const pct = (x, d=1) => ((x ?? 0) * 100).toFixed(d) + '%';
+    const pp = (x, d=2) => {
+      const v = (x ?? 0) * 100;
+      return (v >= 0 ? '+' : '') + v.toFixed(d) + 'pp';
+    };
     const cls = (x) => x > 0 ? 'pos' : (x < 0 ? 'neg' : '');
-    const money = (x) => {
-      const v = (x ?? 0) * 100;
-      return (v >= 0 ? '+' : '') + v.toFixed(2) + 'bp';
-    };
-    // bp of portfolio: show as % of NAV for readability
-    const pnlPct = (x) => {
-      const v = (x ?? 0) * 100;
-      return (v >= 0 ? '+' : '') + v.toFixed(2) + '%';
-    };
     let ALL = null;
     let year = 'all';
 
     function setKPIs(data, filtered) {
       const n = filtered.length;
-      const wins = filtered.filter(t => t.win && !t.open).length;
-      const closed = filtered.filter(t => !t.open).length;
-      const wr = closed ? wins / closed : 0;
-      const sum = filtered.reduce((a, t) => a + (t.pnl_port || 0), 0);
+      const plus = filtered.filter(t => (t.net_ret ?? 0) > 0).length;
+      const avgNet = n ? filtered.reduce((a, t) => a + (t.net_ret || 0), 0) / n : 0;
       const avgHold = n ? filtered.reduce((a, t) => a + t.hold_days, 0) / n : 0;
       document.getElementById('kpis').innerHTML = `
         <div class="card"><div class="hint">Trades shown</div><div class="kpi">${n}</div>
           <div class="hint">of ${data.n_trades} total</div></div>
-        <div class="card"><div class="hint">Win rate</div><div class="kpi ${wr>=0.5?'pos':''}">${pct(wr,1)}</div>
-          <div class="hint">${wins} wins / ${closed} closed</div></div>
-        <div class="card"><div class="hint">Sum PnL (NAV)</div><div class="kpi ${cls(sum)}">${pnlPct(sum)}</div>
-          <div class="hint">approx portfolio contrib</div></div>
+        <div class="card"><div class="hint">Net &gt; 0</div><div class="kpi ${plus/n>=0.5?'pos':''}">${n?pct(plus/n):'—'}</div>
+          <div class="hint">${plus} / ${n}</div></div>
+        <div class="card"><div class="hint">Avg net / trade</div><div class="kpi ${cls(avgNet)}">${pct(avgNet)}</div>
+          <div class="hint">after 0.40% RT</div></div>
         <div class="card"><div class="hint">Avg hold</div><div class="kpi">${avgHold.toFixed(0)}d</div>
-          <div class="hint">${data.n_open || 0} open overall</div></div>`;
+          <div class="hint">${data.n_open || 0} still open</div></div>`;
     }
 
     function filteredTrades() {
@@ -259,8 +247,8 @@
       return ALL.trades.filter(t => {
         if (y !== 'all' && String(t.year_entry) !== y) return false;
         if (sym !== 'all' && t.symbol !== sym) return false;
-        if (res === 'win' && !(t.win && !t.open)) return false;
-        if (res === 'loss' && !(!t.win && !t.open)) return false;
+        if (res === 'plus' && !((t.net_ret ?? 0) > 0)) return false;
+        if (res === 'minus' && !((t.net_ret ?? 0) < 0)) return false;
         if (res === 'open' && !t.open) return false;
         if (q) {
           const blob = `${t.symbol} ${t.entry_date} ${t.exit_date} ${t.id}`.toLowerCase();
@@ -283,15 +271,12 @@
         return;
       }
       empty.style.display = 'none';
-      // newest first for mobile scan
       const sorted = [...rows].sort((a, b) => (a.entry_date < b.entry_date ? 1 : -1));
       tb.innerHTML = sorted.map(t => {
-        const result = t.open
-          ? '<span class="pill open">OPEN</span>'
-          : (t.win ? '<span class="pill win">WIN</span>' : '<span class="pill loss">LOSS</span>');
-        const net = (t.net_ret != null) ? t.net_ret : (t.gross_ret - 0.004);
-        const fee = t.fee_port != null ? t.fee_port : 0;
-        const wavg = t.weight_avg != null ? t.weight_avg : t.weight;
+        const net = t.net_ret != null ? t.net_ret : (t.gross_ret - 0.004);
+        const w = t.weight != null ? t.weight : t.weight_avg;
+        const ca = t.cagr_after != null ? t.cagr_after : null;
+        const dc = t.cagr_change != null ? t.cagr_change : null;
         return `<tr>
           <td class="num">${t.id}</td>
           <td><strong>${t.symbol}</strong></td>
@@ -300,12 +285,11 @@
           <td class="num">${Number(t.entry_price).toLocaleString('id-ID', {maximumFractionDigits: 0})}</td>
           <td class="num">${Number(t.exit_price).toLocaleString('id-ID', {maximumFractionDigits: 0})}</td>
           <td class="num ${cls(t.gross_ret)}">${pct(t.gross_ret)}</td>
-          <td class="num ${cls(net)}">${pct(net)}</td>
-          <td class="num ${cls(t.pnl_port)}">${pnlPct(t.pnl_port)}</td>
-          <td class="num neg">${pct(fee, 2)}</td>
-          <td class="num">${pct(wavg, 0)}</td>
+          <td class="num ${cls(net)}"><strong>${pct(net)}</strong></td>
+          <td class="num">${pct(w, 0)}</td>
           <td class="num">${t.hold_days}</td>
-          <td>${result}</td>
+          <td class="num">${ca == null ? '—' : pct(ca, 1)}</td>
+          <td class="num ${dc == null ? '' : cls(dc)}">${dc == null ? '—' : pp(dc)}</td>
         </tr>`;
       }).join('');
     }
@@ -322,7 +306,11 @@
     async function main() {
       const res = await fetch('trades.json?v=' + Date.now());
       ALL = await res.json();
-      if (typeof ALL !== 'object' || !ALL.trades) throw new Error('bad trades.json');
+      if (!ALL.trades) throw new Error('bad trades.json');
+
+      const pc = ALL.portfolio_cagr_after_fees;
+      document.getElementById('portCagr').textContent =
+        pc == null ? '—' : pct(pc) + ' (full sample, all fees)';
 
       const yearSel = document.getElementById('yearSel');
       yearSel.innerHTML = `<option value="all">All years</option>` +
@@ -354,7 +342,6 @@
       });
       document.getElementById('q').addEventListener('input', render);
 
-      // deep link ?year=2021
       const params = new URLSearchParams(location.search);
       const y0 = params.get('year');
       if (y0 && (y0 === 'all' || ALL.years.map(String).includes(y0))) setYear(y0);
