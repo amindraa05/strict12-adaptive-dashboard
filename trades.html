@@ -141,8 +141,18 @@
     <header>
       <span class="badge">STRICT12 Adaptive · all trades</span>
       <h1>Transactions</h1>
-      <p class="sub">Semua entry/exit backtest · filter by year · fee 0.40% RT already in PnL contrib</p>
+      <p class="sub">Semua entry/exit backtest · filter by year · fee model 0.15% buy + 0.25% sell (0.40% RT)</p>
     </header>
+
+    <section class="card" style="margin-bottom:12px">
+      <h2 style="margin:0 0 8px;font-size:13px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted)">Cara baca kolom (penting)</h2>
+      <ul style="margin:0;padding-left:18px;color:var(--muted);font-size:13px">
+        <li><strong style="color:var(--text)">Gross</strong> = return <em>harga saham saja</em> (exit/entry − 1). <strong>Belum</strong> dipotong fee.</li>
+        <li><strong style="color:var(--text)">Net −0,4%</strong> = Gross − <strong>0,40%</strong> round-trip fee (beli 0,15% + jual 0,25%). Ini return saham setelah fee 1 RT.</li>
+        <li><strong style="color:var(--text)">PnL port</strong> = kontribusi ke <em>modal portfolio</em> = Σ (bobot × return harian) − fee pada |Δ bobot| nama ini. Sudah <strong>setelah fee</strong>. Bisa beda dari Net jika bobot ≠ 100% atau bobot berubah di tengah trade (adaptive).</li>
+        <li><strong style="color:var(--text)">Result WIN/LOSS</strong> = berdasarkan <strong>PnL port</strong> (bukan Gross).</li>
+      </ul>
+    </section>
 
     <section class="grid" id="kpis"></section>
 
@@ -173,7 +183,7 @@
       <div class="chip-row" id="yearChips"></div>
       <div class="toolbar">
         <div class="count" id="countLabel">—</div>
-        <div class="hint">PnL port = approx contribution to portfolio NAV (weight × returns − fees)</div>
+        <div class="hint">Gross = no fee · Net = Gross−0.40% · PnL port = NAV impact after fees</div>
       </div>
       <div class="scroll-x">
         <table>
@@ -186,8 +196,10 @@
               <th class="num">Entry px</th>
               <th class="num">Exit px</th>
               <th class="num">Gross</th>
+              <th class="num">Net −0.4%</th>
               <th class="num">PnL port</th>
-              <th class="num">Weight</th>
+              <th class="num">Fee</th>
+              <th class="num">Avg w</th>
               <th class="num">Hold d</th>
               <th>Result</th>
             </tr>
@@ -277,6 +289,9 @@
         const result = t.open
           ? '<span class="pill open">OPEN</span>'
           : (t.win ? '<span class="pill win">WIN</span>' : '<span class="pill loss">LOSS</span>');
+        const net = (t.net_ret != null) ? t.net_ret : (t.gross_ret - 0.004);
+        const fee = t.fee_port != null ? t.fee_port : 0;
+        const wavg = t.weight_avg != null ? t.weight_avg : t.weight;
         return `<tr>
           <td class="num">${t.id}</td>
           <td><strong>${t.symbol}</strong></td>
@@ -285,8 +300,10 @@
           <td class="num">${Number(t.entry_price).toLocaleString('id-ID', {maximumFractionDigits: 0})}</td>
           <td class="num">${Number(t.exit_price).toLocaleString('id-ID', {maximumFractionDigits: 0})}</td>
           <td class="num ${cls(t.gross_ret)}">${pct(t.gross_ret)}</td>
+          <td class="num ${cls(net)}">${pct(net)}</td>
           <td class="num ${cls(t.pnl_port)}">${pnlPct(t.pnl_port)}</td>
-          <td class="num">${pct(t.weight, 0)}</td>
+          <td class="num neg">${pct(fee, 2)}</td>
+          <td class="num">${pct(wavg, 0)}</td>
           <td class="num">${t.hold_days}</td>
           <td>${result}</td>
         </tr>`;
