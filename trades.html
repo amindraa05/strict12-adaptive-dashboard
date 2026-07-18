@@ -1,0 +1,352 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#0b1220" />
+  <title>Transactions · STRICT12 Adaptive</title>
+  <style>
+    :root {
+      --bg: #0b1220;
+      --panel: #121a2b;
+      --panel2: #182338;
+      --border: #243049;
+      --text: #e8eefc;
+      --muted: #8b9bb8;
+      --green: #22c55e;
+      --red: #ef4444;
+      --amber: #f59e0b;
+      --blue: #38bdf8;
+      --radius: 16px;
+      --shadow: 0 8px 28px rgba(0,0,0,.35);
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
+      background: radial-gradient(1200px 600px at 10% -10%, #1a2744 0%, var(--bg) 50%), var(--bg);
+      color: var(--text);
+      line-height: 1.45;
+      padding-bottom: 88px;
+    }
+    .wrap { max-width: 1100px; margin: 0 auto; padding: 16px; }
+    h1 { font-size: clamp(1.25rem, 4.5vw, 1.7rem); margin: 10px 0 6px; letter-spacing: -.02em; }
+    .sub { color: var(--muted); font-size: 14px; margin: 0 0 14px; }
+    a { color: var(--blue); text-decoration: none; }
+    .badge {
+      display: inline-flex; font-size: 12px; font-weight: 600;
+      color: #b7f7cf; background: rgba(34,197,94,.12);
+      border: 1px solid rgba(34,197,94,.3);
+      padding: 4px 10px; border-radius: 999px;
+    }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0,1fr));
+      gap: 10px;
+    }
+    @media (min-width: 720px) {
+      .grid { grid-template-columns: repeat(4, minmax(0,1fr)); }
+    }
+    .card {
+      background: linear-gradient(180deg, var(--panel) 0%, var(--panel2) 100%);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 14px;
+      box-shadow: var(--shadow);
+    }
+    .kpi { font-size: 1.25rem; font-weight: 750; }
+    .pos { color: var(--green); }
+    .neg { color: var(--red); }
+    .hint { font-size: 11px; color: var(--muted); margin-top: 4px; }
+    .filters {
+      display: flex; flex-wrap: wrap; gap: 8px; align-items: center;
+      margin: 12px 0;
+    }
+    label { font-size: 12px; color: var(--muted); font-weight: 650; }
+    select, input {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      color: var(--text);
+      border-radius: 10px;
+      padding: 8px 10px;
+      font-size: 14px;
+      min-height: 40px;
+    }
+    select { min-width: 120px; }
+    input { flex: 1; min-width: 140px; }
+    .chip-row {
+      display: flex; flex-wrap: nowrap; gap: 8px; overflow-x: auto;
+      -webkit-overflow-scrolling: touch; padding-bottom: 4px; margin: 8px 0 4px;
+    }
+    .chip {
+      flex: 0 0 auto;
+      border: 1px solid var(--border);
+      background: transparent;
+      color: var(--muted);
+      border-radius: 999px;
+      padding: 8px 12px;
+      font-size: 13px;
+      font-weight: 650;
+      cursor: pointer;
+    }
+    .chip.active {
+      color: var(--text);
+      background: rgba(56,189,248,.14);
+      border-color: rgba(56,189,248,.4);
+    }
+    .scroll-x { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+    table { width: 100%; border-collapse: collapse; font-size: 12.5px; }
+    th, td {
+      text-align: left; padding: 9px 7px;
+      border-bottom: 1px solid var(--border);
+      white-space: nowrap;
+      font-variant-numeric: tabular-nums;
+    }
+    th {
+      color: var(--muted); font-size: 10px; text-transform: uppercase;
+      letter-spacing: .04em; position: sticky; top: 0;
+      background: var(--panel2);
+    }
+    td.num, th.num { text-align: right; }
+    tr:hover td { background: rgba(255,255,255,.025); }
+    .pill {
+      display: inline-block; padding: 2px 7px; border-radius: 999px;
+      font-size: 10px; font-weight: 700;
+    }
+    .pill.win { background: rgba(34,197,94,.15); color: #86efac; }
+    .pill.loss { background: rgba(239,68,68,.15); color: #fca5a5; }
+    .pill.open { background: rgba(245,158,11,.15); color: #fcd34d; }
+    .nav {
+      position: fixed; left: 0; right: 0; bottom: 0; z-index: 50;
+      background: rgba(11,18,32,.92); backdrop-filter: blur(12px);
+      border-top: 1px solid var(--border);
+      display: flex; justify-content: space-around;
+      padding: 8px 6px calc(8px + env(safe-area-inset-bottom));
+    }
+    .nav a {
+      color: var(--muted); text-decoration: none; font-size: 11px; font-weight: 650;
+      padding: 8px 10px; border-radius: 10px; text-align: center; min-width: 64px;
+    }
+    .nav a.active, .nav a:hover { color: var(--text); background: rgba(255,255,255,.05); }
+    .empty { color: var(--muted); padding: 24px 8px; text-align: center; }
+    .toolbar {
+      display: flex; flex-wrap: wrap; gap: 8px; justify-content: space-between;
+      align-items: center; margin-bottom: 8px;
+    }
+    .count { font-size: 13px; color: var(--muted); }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <span class="badge">STRICT12 Adaptive · all trades</span>
+      <h1>Transactions</h1>
+      <p class="sub">Semua entry/exit backtest · filter by year · fee 0.40% RT already in PnL contrib</p>
+    </header>
+
+    <section class="grid" id="kpis"></section>
+
+    <section class="card" style="margin-top:12px">
+      <div class="filters">
+        <div>
+          <label for="yearSel">Year</label><br/>
+          <select id="yearSel"></select>
+        </div>
+        <div>
+          <label for="symSel">Symbol</label><br/>
+          <select id="symSel"></select>
+        </div>
+        <div>
+          <label for="sideSel">Result</label><br/>
+          <select id="sideSel">
+            <option value="all">All</option>
+            <option value="win">Wins</option>
+            <option value="loss">Losses</option>
+            <option value="open">Open</option>
+          </select>
+        </div>
+        <div style="flex:1;min-width:160px">
+          <label for="q">Search</label><br/>
+          <input id="q" type="search" placeholder="e.g. ANTM / 2021-03" />
+        </div>
+      </div>
+      <div class="chip-row" id="yearChips"></div>
+      <div class="toolbar">
+        <div class="count" id="countLabel">—</div>
+        <div class="hint">PnL port = approx contribution to portfolio NAV (weight × returns − fees)</div>
+      </div>
+      <div class="scroll-x">
+        <table>
+          <thead>
+            <tr>
+              <th class="num">#</th>
+              <th>Symbol</th>
+              <th>Entry</th>
+              <th>Exit</th>
+              <th class="num">Entry px</th>
+              <th class="num">Exit px</th>
+              <th class="num">Gross</th>
+              <th class="num">PnL port</th>
+              <th class="num">Weight</th>
+              <th class="num">Hold d</th>
+              <th>Result</th>
+            </tr>
+          </thead>
+          <tbody id="tbody"></tbody>
+        </table>
+      </div>
+      <div id="empty" class="empty" style="display:none">No trades for this filter.</div>
+    </section>
+  </div>
+
+  <nav class="nav">
+    <a href="index.html">Dashboard</a>
+    <a href="trades.html" class="active">Trades</a>
+    <a href="index.html#yearly">Years</a>
+    <a href="index.html#rules">Rules</a>
+  </nav>
+
+  <script>
+    const pct = (x, d=1) => ((x ?? 0) * 100).toFixed(d) + '%';
+    const cls = (x) => x > 0 ? 'pos' : (x < 0 ? 'neg' : '');
+    const money = (x) => {
+      const v = (x ?? 0) * 100;
+      return (v >= 0 ? '+' : '') + v.toFixed(2) + 'bp';
+    };
+    // bp of portfolio: show as % of NAV for readability
+    const pnlPct = (x) => {
+      const v = (x ?? 0) * 100;
+      return (v >= 0 ? '+' : '') + v.toFixed(2) + '%';
+    };
+    let ALL = null;
+    let year = 'all';
+
+    function setKPIs(data, filtered) {
+      const n = filtered.length;
+      const wins = filtered.filter(t => t.win && !t.open).length;
+      const closed = filtered.filter(t => !t.open).length;
+      const wr = closed ? wins / closed : 0;
+      const sum = filtered.reduce((a, t) => a + (t.pnl_port || 0), 0);
+      const avgHold = n ? filtered.reduce((a, t) => a + t.hold_days, 0) / n : 0;
+      document.getElementById('kpis').innerHTML = `
+        <div class="card"><div class="hint">Trades shown</div><div class="kpi">${n}</div>
+          <div class="hint">of ${data.n_trades} total</div></div>
+        <div class="card"><div class="hint">Win rate</div><div class="kpi ${wr>=0.5?'pos':''}">${pct(wr,1)}</div>
+          <div class="hint">${wins} wins / ${closed} closed</div></div>
+        <div class="card"><div class="hint">Sum PnL (NAV)</div><div class="kpi ${cls(sum)}">${pnlPct(sum)}</div>
+          <div class="hint">approx portfolio contrib</div></div>
+        <div class="card"><div class="hint">Avg hold</div><div class="kpi">${avgHold.toFixed(0)}d</div>
+          <div class="hint">${data.n_open || 0} open overall</div></div>`;
+    }
+
+    function filteredTrades() {
+      const y = document.getElementById('yearSel').value;
+      const sym = document.getElementById('symSel').value;
+      const res = document.getElementById('sideSel').value;
+      const q = (document.getElementById('q').value || '').trim().toLowerCase();
+      return ALL.trades.filter(t => {
+        if (y !== 'all' && String(t.year_entry) !== y) return false;
+        if (sym !== 'all' && t.symbol !== sym) return false;
+        if (res === 'win' && !(t.win && !t.open)) return false;
+        if (res === 'loss' && !(!t.win && !t.open)) return false;
+        if (res === 'open' && !t.open) return false;
+        if (q) {
+          const blob = `${t.symbol} ${t.entry_date} ${t.exit_date} ${t.id}`.toLowerCase();
+          if (!blob.includes(q)) return false;
+        }
+        return true;
+      });
+    }
+
+    function render() {
+      const rows = filteredTrades();
+      setKPIs(ALL, rows);
+      document.getElementById('countLabel').textContent =
+        `${rows.length} trade(s)` + (year !== 'all' ? ` · entry year ${year}` : '');
+      const tb = document.getElementById('tbody');
+      const empty = document.getElementById('empty');
+      if (!rows.length) {
+        tb.innerHTML = '';
+        empty.style.display = 'block';
+        return;
+      }
+      empty.style.display = 'none';
+      // newest first for mobile scan
+      const sorted = [...rows].sort((a, b) => (a.entry_date < b.entry_date ? 1 : -1));
+      tb.innerHTML = sorted.map(t => {
+        const result = t.open
+          ? '<span class="pill open">OPEN</span>'
+          : (t.win ? '<span class="pill win">WIN</span>' : '<span class="pill loss">LOSS</span>');
+        return `<tr>
+          <td class="num">${t.id}</td>
+          <td><strong>${t.symbol}</strong></td>
+          <td>${t.entry_date}</td>
+          <td>${t.exit_date}${t.open ? ' *' : ''}</td>
+          <td class="num">${Number(t.entry_price).toLocaleString('id-ID', {maximumFractionDigits: 0})}</td>
+          <td class="num">${Number(t.exit_price).toLocaleString('id-ID', {maximumFractionDigits: 0})}</td>
+          <td class="num ${cls(t.gross_ret)}">${pct(t.gross_ret)}</td>
+          <td class="num ${cls(t.pnl_port)}">${pnlPct(t.pnl_port)}</td>
+          <td class="num">${pct(t.weight, 0)}</td>
+          <td class="num">${t.hold_days}</td>
+          <td>${result}</td>
+        </tr>`;
+      }).join('');
+    }
+
+    function setYear(y) {
+      year = y;
+      document.getElementById('yearSel').value = y;
+      document.querySelectorAll('.chip').forEach(c => {
+        c.classList.toggle('active', c.dataset.year === y);
+      });
+      render();
+    }
+
+    async function main() {
+      const res = await fetch('trades.json?v=' + Date.now());
+      ALL = await res.json();
+      if (typeof ALL !== 'object' || !ALL.trades) throw new Error('bad trades.json');
+
+      const yearSel = document.getElementById('yearSel');
+      yearSel.innerHTML = `<option value="all">All years</option>` +
+        ALL.years.map(y => {
+          const st = ALL.by_year[String(y)] || {};
+          return `<option value="${y}">${y} (${st.count || 0})</option>`;
+        }).join('');
+
+      const chips = document.getElementById('yearChips');
+      chips.innerHTML = `<button type="button" class="chip active" data-year="all">All</button>` +
+        ALL.years.map(y => {
+          const st = ALL.by_year[String(y)] || {};
+          return `<button type="button" class="chip" data-year="${y}">${y} · ${st.count || 0}</button>`;
+        }).join('');
+      chips.querySelectorAll('.chip').forEach(btn => {
+        btn.addEventListener('click', () => setYear(btn.dataset.year));
+      });
+
+      const symSel = document.getElementById('symSel');
+      const syms = ALL.symbols || [...new Set(ALL.trades.map(t => t.symbol))].sort();
+      symSel.innerHTML = `<option value="all">All symbols</option>` +
+        syms.map(s => `<option value="${s}">${s}</option>`).join('');
+
+      ['yearSel', 'symSel', 'sideSel'].forEach(id => {
+        document.getElementById(id).addEventListener('change', () => {
+          if (id === 'yearSel') setYear(document.getElementById('yearSel').value);
+          else render();
+        });
+      });
+      document.getElementById('q').addEventListener('input', render);
+
+      // deep link ?year=2021
+      const params = new URLSearchParams(location.search);
+      const y0 = params.get('year');
+      if (y0 && (y0 === 'all' || ALL.years.map(String).includes(y0))) setYear(y0);
+      else render();
+    }
+
+    main().catch(err => {
+      document.body.innerHTML = `<div class="wrap"><div class="card"><h1>Failed to load trades.json</h1><pre>${err}</pre></div></div>`;
+    });
+  </script>
+</body>
+</html>

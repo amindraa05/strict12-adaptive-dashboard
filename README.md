@@ -24,6 +24,7 @@ Or just open `index.html` via any static host (GitHub Pages works).
 
 ## Dashboard contents
 
+### `index.html` — overview
 - KPIs: CAGR, Max DD, multiple, Sharpe, trades, exposure, selection vs holdout
 - Equity + drawdown chart (All / 5Y / Holdout 2024+)
 - Yearly returns + **trade counts**
@@ -31,6 +32,13 @@ Or just open `index.html` via any static host (GitHub Pages works).
 - Name activity
 - Live snapshot & worst underwater spells
 - Rules + audit notes
+
+### `trades.html` — all transactions
+- Full trade list (entry/exit, prices, gross %, portfolio PnL contrib, weight, hold days)
+- **Filter by year** (chips + dropdown), symbol, win/loss/open, search
+- Summary KPIs for filtered set
+- Deep link: `trades.html?year=2021`
+- Data: `trades.json`
 
 ## Important disclaimers
 
